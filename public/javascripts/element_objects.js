@@ -65,6 +65,11 @@ class Element {
 		return this;
 	}
 
+	setBorder(val) {
+		if (val !== undefined) this.border = val;
+		return this;
+	}
+
 	setBackground(color, textColor) {
 		if (color) this.bColor = color;
 		if (textColor) this.tColor = textColor;
@@ -150,6 +155,7 @@ class DocumentElement extends Element {
 		this.elem = document.createElement(type);
 		if (id) this.elem.id = id;
 		this.elem.style.display = "none";
+		this.elem.style.fontFamily = LABEL_FONT;
 		document.getElementById("content").appendChild(this.elem);
 	}
 
@@ -502,11 +508,6 @@ class Button extends ButtonMixin(TextElement) {
 		this.holdTicks = 0;
 	}
 
-	setBorder(val) {
-		if (val !== undefined) this.border = val;
-		return this;
-	}
-
 	setMargin(val) {
 		if (val !== undefined) this.margin = val;
 		return this;
@@ -615,9 +616,10 @@ class ImageButton extends ButtonMixin(ImageElement) {
 
 		if (this.bColor) drawBorderedRect(dims.left, dims.top, dims.width, dims.height, this.bgndColor(), this.borderColor());
 
-		if (this.outline) {
-			drawRect(false, dims.left, dims.top, dims.width, dims.height, true, "white");
-		} else {
+		if (this.outline || this.border) {
+			drawRect(false, dims.left, dims.top, dims.width, dims.height, true, this.border || "white");
+		}
+		if (!this.outline) {
 			ctx.drawImage(img.img, dims.left + this.margin, dims.top + this.margin, dims.width - this.margin * 2, dims.height - this.margin * 2);
 		}
 		if (this.highlight && (this.highlighted || this.clicked)) drawRect(false, dims.left, dims.top, dims.width, dims.height, true, this.highlight);
@@ -631,11 +633,6 @@ class ShapeButton extends ButtonMixin(ImageElement) {
 		this.callback = callback;
 		this.color = color;
 		this.border = border;
-	}
-
-	setBorder(val) {
-		if (val !== undefined) this.border = val;
-		return this;
 	}
 
 	dims() {

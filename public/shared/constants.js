@@ -17,6 +17,7 @@
         CONFIRM_TRADE: "CONFIRM TRADE",
         CLEAR_TRADE: "CLEAR TRADE",
         DIG_FIELD: "DIG FIELD",
+        BUY_FIELD: "BUY FIELD",
         PASS: "PASS",
     };
 

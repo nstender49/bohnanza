@@ -9,10 +9,10 @@ function drawTable() {
 	const padHeight = 0.4;
 
 	// Draw deck, discard, and table cards 
-	if (![constants.states.LOBBY, constants.states.END].includes(gameState)) drawPlayerConsole(padWidth, padHeight);
+	if (![constants.states.LOBBY].includes(gameState)) drawPlayerConsole(padWidth, padHeight);
 
 	// Draw player's hand
-	drawCard(CARD_BACK, 0.01, padHeight * 2.05, (1 - padHeight * 2) * 0.6);
+	drawImage(IMAGES[COIN_STACK], 0.01, padHeight * 2.1, false, (1 - padHeight * 2) * 0.4);
 	drawText(`x${coins.length}`, 0.075, padHeight * 2.25, 30, "center", false, 0.2);
 	drawText(theTable.message, 0.1, padHeight * 1.975, 15, "left", false, 0.3);
 	handButton.setPosition(0.1, padHeight * 2).setDims(0.8, 1 - padHeight * 2).setBorder(isCurrentPlayer() ? "green" : "white").draw();
@@ -24,7 +24,8 @@ function drawTable() {
 
 function drawPlayerConsole(padW, padH) {
 	drawCard(theTable.topDiscard, padW * 1.1, padH * 1.1, padH * 0.4);
-	drawText(`Round ${theTable.round + 1}`, padW * 1.8, padH * 1.2, 20, "center", false, padH * 0.15);
+	drawCard(CARD_BACK, padW * 1.4, padH * 1.1, padH * 0.4);
+	drawText(`Round ${theTable.round}`, padW * 1.8, padH * 1.2, 20, "center", false, padH * 0.15);
 	drawText(`x${theTable.deckSize}`, padW * 1.8, padH * 1.4, 30, "center", false, padH * 0.2);
 	if (isCurrentPlayer()) {
 		drawCard(false, padW * 1.5, padH * 1.5, padH * 0.4);
@@ -117,37 +118,50 @@ function getGap(elemW, totalW, num) {
 
 function drawPlayer(index, x, y, padW, padH) {
 	var player = theTable.players[index];
-	drawRect(undefined, x, y, padW, padH, false, index == theTable.currentPlayer ? "green" : "white");
-	
-	rowHeight = padH * 0.2;
+
+	var rowHeight = padH * 0.2;
+	var borderColor = "white";
 	drawText(player.name, x + padW * 0.05, y + rowHeight * 0.7, 30, "left", false, padW * 0.6);
-	drawCard(CARD_BACK, x + padW * 0.73, y + rowHeight * 0.1, rowHeight * 0.8);
-	drawCard(CARD_BACK, x + padW * 0.7, y + rowHeight * 0.1, rowHeight * 0.8);
-	drawCard(CARD_BACK, x + padW * 0.67, y + rowHeight * 0.1, rowHeight * 0.8);
-	drawText(`x${player.handSize}`, x + padW * 0.9, y + rowHeight * 0.7, 30, "center", false, padW * 0.1);
+	if (gameState === constants.states.END) {
+		if (theTable.winners.includes(player.name)) borderColor = "gold";
+		drawImage(IMAGES[COIN_STACK], x + padW * 0.7, y + rowHeight * 0.2, false, rowHeight * 0.6);
+		drawText(`x${player.coinCount}`, x + padW * 0.875, y + rowHeight * 0.7, 30, "center", false, padW * 0.1);
+	} else {
+		if (index == theTable.currentPlayer) borderColor = "green";
+		drawCard(CARD_BACK, x + padW * 0.7, y + rowHeight * 0.1, rowHeight * 0.8);
+		drawText(`x${player.handSize}`, x + padW * 0.875, y + rowHeight * 0.7, 30, "center", false, padW * 0.1);
+	}
 
 	drawFields(player, x, y + padH * 0.2, padW, padH * 0.4);
 	drawTradingArea(player, x, y + padH * 0.6, padW, padH * 0.4);
+	drawRect(undefined, x, y, padW, padH, false, borderColor);
 }
 
 function drawTradingArea(player, x, y, w, h) {
-	drawRect("#d4aa78", x, y, w * 0.4, h, false, "white");
-	drawRect("#d4aa78", x + w * 0.4, y, w * 0.4, h, false, "white");
-	drawRect("#d4aa78", x + w * 0.8, y, w * 0.2, h, false, "white");
+	// drawRect("#d4aa78", x, y, w * 0.4, h, false, "white");
+	// drawRect("#d4aa78", x + w * 0.4, y, w * 0.4, h, false, "white");
+	// drawRect("#d4aa78", x + w * 0.8, y, w * 0.2, h, false, "white");
 
+	plantButton.setPosition(x + w * 0.8, y).setDims(w * 0.2, h).show().draw();
+	if (player === thePlayer) {
+		tradeButtons[player.id].setPosition(x, y).setDims(w * 0.4, h).show().draw();
+		drawImage(IMAGES[TRADE_PAD_IN], x + w * 0.4, y, w * 0.4, h);
+		drawRect(false, x + w * 0.4, y, w * 0.4, h, false, "white");
+	} else {
+		drawImage(IMAGES[TRADE_PAD_IN], x, y, w * 0.4, h);
+		drawRect(false, x, y, w * 0.4, h, false, "white");
+		tradeButtons[player.id].setPosition(x + w * 0.4, y).setDims(w * 0.4, h).show().draw();
+	}
 	if (player === thePlayer && isCurrentPlayer()) {
 		if (theTable.state === constants.states.PLANT_SECOND || theTable.state === constants.states.TRADING && theTable.tableCards.length === 0) buttons["pass"].enable().draw(); 
-		
-		plantButton.setPosition(x + w * 0.8, y).setDims(w * 0.2, h).show().draw();
 		drawCardColumn(plantCards, x + w * 0.8, y, w * 0.2, h);
 	} else {
 		if (player === thePlayer) {
-			tradeButtons[player.id].setPosition(x, y).setDims(w * 0.4, h).draw();
+			tradeButtons[player.id].setPosition(x, y).setDims(w * 0.4, h).show().draw();
 			drawCardColumn(offerCards, x, y, w * 0.2, h);
 			drawCardColumn(plantCards, x + w * 0.8, y, w * 0.2, h);
 			drawCardColumn(player.trade.ask, x + w * 0.6, y, w * 0.2, h);
 		} else if (isCurrentPlayer()) {
-			tradeButtons[player.id].setPosition(x + w * 0.4, y).setDims(w * 0.4, h).draw();
 			drawCardColumn(player.trade.offer, x, y, w * 0.2, h);
 			drawCardColumn(askCards[player.id], x + w * 0.6, y, w * 0.2, h);
 			drawCardColumn(player.plant, x + w * 0.8, y, w * 0.2, h);
@@ -168,13 +182,14 @@ function drawTradingArea(player, x, y, w, h) {
 function drawFields(player, x, y, w, h) {
 	offset = w * 0.05;
 	for (var i = 0; i < 3; i++) {
-		if (player.fields[i]) var [fieldValue, fieldCount] = player.fields[i];
-		else var [fieldValue, fieldCount] = [CARD_FIELD, 0];
+		if (!player.fields[i]) var [fieldValue, fieldCount] = ["FIELD 3 DASH", 0];
+		else if (player.fields[i][0]) var [fieldValue, fieldCount] = player.fields[i];
+		else var [fieldValue, fieldCount] = [`FIELD ${i+1}`, 0];
 		if (player === thePlayer) {
 			if (fieldCount > 0 && (fieldCount > 1 || !player.fields.map(f => f ? f[1] : 0).some((count) => count > 1))) buttons[`dig ${i}`].enable();
 			if (fieldValue && fieldCount > 0) buttons[`dig ${i}`].setText(`x${fieldCount}`).setPosition(x + offset + w * 0.25, y + h * 0.55).setDims(false, 0.03).show().draw();
-			fieldButtons[i].on_img = fieldValue ? CARDS[fieldValue] : CARDS[CARD_BACK];
-			fieldButtons[i].setPosition(x + offset, y + h * 0.1).setDims(false, h * 0.8).setOutline(!fieldValue).draw();
+			fieldButtons[i].on_img = CARDS[fieldValue];
+			fieldButtons[i].setPosition(x + offset, y + h * 0.1).setDims(false, h * 0.8).draw();
 		} else {
 			if (fieldValue && fieldCount > 0) drawText(`x${fieldCount}`, x + offset + w * 0.25, y + h * 0.55, 20, "center", false, w * 0.075);
 			drawCard(fieldValue, x + offset, y + h * 0.1, h * 0.8);
@@ -230,6 +245,7 @@ function drawCard(card, x, y, h) {
 function highlightLocations() {
 	getLocationButtons().map(b => b.setHighlighted(false).disable().show());
 	if (!thePlayer.fields[2] && coins.length > 2) fieldButtons[2].enable();
+	if (thePlayer.fields[2] && fieldButtons[2].doubleCallback) fieldButtons[2].callback = fieldButtons[2].doubleCallback; fieldButtons[2].doubleCallback = undefined;
 	if (clickedCards.length === 0) return;
 
 	var toEnable = []
@@ -254,7 +270,7 @@ function highlightLocations() {
 				}
 			} else {
 				if (clickedOrigin === constants.loc.HAND) {
-					toEnable.push(tradeButtons[player.id]);
+					toEnable.push(tradeButtons[thePlayer.id]);
 				} else if (clickedOrigin === constants.loc.TRADE) {
 					toEnable.push(handButton);
 				}

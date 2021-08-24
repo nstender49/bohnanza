@@ -209,6 +209,11 @@ function tick() {
 			drawGroups["table lobby"].draw();
 			drawGroups["bottom bar"].draw();
 			break;
+		case constants.states.END:
+			drawTable();
+			if (isTableOwner()) buttons["finish game"].enable().draw();
+			drawGroups["bottom bar"].draw();
+			break;
 		default:
 			//drawGroups["chat"].draw();
 			drawTable();
@@ -254,7 +259,7 @@ var canvas, ctx, cvW, cvH;
 var clickCursor = false,
 	aspect = 16 / 10,
 	BACKGROUND_COLOR = "#ecd5ad",
-	LABEL_FONT = "Tahoma",
+	LABEL_FONT = "BodoniHighlight",
 	WHITE = "#ffffff",
 	BUTTON_BACKGROUND = "#d98137",
 	BUTTON_BORDER = "#4d3e3a",

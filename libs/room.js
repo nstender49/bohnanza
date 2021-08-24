@@ -24,6 +24,7 @@ class Room {
         this.state = constants.states.LOBBY;
         this.round = 0;
         this.message = "";
+        this.winners = [];
 
         this.players = [];
         this.tableCards = [];
@@ -220,6 +221,7 @@ class Room {
             tableCardCommitted: this.tableCardCommitted,
             // Display data
             message: this.message,
+            winners: this.winners,
             // Turn order
             currentPlayer: this.currentPlayer,
         });
@@ -312,6 +314,7 @@ class Room {
         
         if (this.state === constants.states.END) {
             if (move.type !== constants.moves.FINISH || !this.isOwner(id)) return result;
+
             result.handled = true;
             result.advance = true;
             return result;     
@@ -325,7 +328,7 @@ class Room {
                 break;
             }
             case constants.moves.DIG_FIELD: {
-                result.handled = this.digField(id, move);
+                result.handled = this.digField(id, move.field);
                 break;
             }
             case constants.moves.CONFIRM_TRADE: {
@@ -361,11 +364,11 @@ class Room {
     }
 
     
-    digField(id, move) {
+    digField(id, fieldIndex) {
         var player = this.getPlayer(id);
-        if (!player.fields[move.field]) return false;
+        if (!player.fields[fieldIndex]) return false;
         var fieldValue, fieldCount;
-        [fieldValue, fieldCount] = player.fields[move.field];
+        [fieldValue, fieldCount] = player.fields[fieldIndex];
         if (fieldCount === 0) return false;
         // If field to dig has 1 bean, check that no other field has more than one bean.
         if (fieldCount === 1 && player.fields.map(f => f ? f[1] : 0).some((count) => count > 1)) return false;
@@ -374,7 +377,7 @@ class Room {
 
         this.coins[id].push(...Array(coinCount).fill(fieldValue))
         this.discard.push(...Array(fieldCount - coinCount).fill(fieldValue))
-        player.fields[move.field] = [false, 0];
+        player.fields[fieldIndex] = [false, 0];
 
         this.emitPlayerInfo(id);
 
@@ -627,7 +630,7 @@ class Room {
                 this.drawCards(this.hands[player.id], 3);
                 player.handSize = this.hands[player.id].length;
                 this.emitPlayerInfo(player.id);
-                if (this.deck.length === 0) {
+                if (this.deck.length === 0 && this.round === this.numRounds()) {
                     this.handleGameEnd();
                     this.state = constants.states.END;
                 } else {
@@ -643,6 +646,7 @@ class Room {
                 break;
             }
             case constants.states.END: {
+                this.clearTable();
                 this.message = undefined;
                 this.state = constants.states.LOBBY;
                 break;
@@ -652,9 +656,23 @@ class Room {
     }
 
     handleGameEnd() {
-        // Make coin counts public
-        // Figure out winner
-        this.message = `Some player wins!`;
+        var maxCount = 0;
+        var maxNames = [];
+        for (var player of this.players) {
+            for (var i = 0; i < 3; i++) {
+                if (!player.fields[i]) continue;
+                if (player.fields[i][0] && this.getCoinCount(player.fields[i][0], player.fields[i][1])) this.digField(player.id, i);
+            }
+            player.coinCount = this.coins[player.id].length;
+            if (player.coinCount > maxCount) {
+                maxCount = player.coinCount;
+                maxNames = [player.name];
+            } else if (player.coinCount === maxCount) {
+                maxNames.push(player.name);
+            }
+        }
+        this.winners = maxNames;
+        this.message = `${maxNames.join(",")} win${maxNames.length === 1 ? "s" : ""}!`;
     }
 
     drawtableCards() {
@@ -677,6 +695,17 @@ class Room {
         this.emitPlayerInfo(player.id);
     }
 
+    clearTable() {
+        for (var player of this.players) {
+            this.coins[player.id] = []
+            this.hands[player.id] = []
+            player.handSize = 0;
+            player.fields = [[false, 0], [false, 0], false]
+            player.plant = []
+            this.emitPlayerInfo(player.id);
+        }
+    }
+
     handleNewGame() {
         this.createDeck();
         this.coins = {};
@@ -685,12 +714,13 @@ class Room {
         // Clear chat logs
         // this.clearChats();
 
-        this.round = 0;
+        this.round = 1;
         // this.currentPlayer = Math.floor(Math.random() * this.players.length);
         this.currentPlayer = 0;
+        this.winners = [];
 
         // For 5 players or less, hand size is 5, otherwise, it starts with 3 and goes to 6.
-        var handSize = this.players.length > 5 ? 3 : 25;
+        var handSize = this.players.length > 5 ? 3 : 5;
         for (var i = 0; i < this.players.length; i++) {
             var player = this.getCurrentPlayer();
             this.coins[player.id] = []
@@ -705,7 +735,6 @@ class Room {
             this.advanceCurrentPlayer()
             handSize = this.players.length > 5 ? Math.min(handSize + 1, 6) : 5;
         }
-
     }
 
     drawCards(hand, numCards) {
@@ -717,15 +746,18 @@ class Room {
         const min = this.players.length === 3 ? 3 : this.players.length < 6 ? 2 : 4;
         const max = this.players.length > 3 && this.players.length < 6 ? 11 : 12;
         this.deck = this.shuffle(
-            [].concat(...[...Array(max - min + 1).keys()].map(i => (i + min) * 2).map(i => Array(i).fill(i)))
+            //[].concat(...[...Array(max - min + 1).keys()].map(i => (i + min) * 2).map(i => Array(i).fill(i)))
+            [].concat(...[...Array(max - min + 1).keys()].map(i => (i + min) * 2).map(i => Array(3).fill(i)))
         );
         // this.deck = [].concat(...[...Array(max - min + 1).keys()].map(i => (i + min) * 2).map(i => Array(i).fill(i)));
     }
 
     addDiscard() {
-        this.round += 1;
         if (this.round === this.numRounds()) return;
-        this.deck = this.shuffle(this.discard).push(...this.deck);
+        this.round++;
+        var remainder = this.deck;
+        this.deck = this.shuffle(this.discard)
+        this.deck.push(...remainder);
         this.discard = [];
     }
 

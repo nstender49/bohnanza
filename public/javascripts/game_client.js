@@ -14,25 +14,36 @@ var newTableSettings = Cookies.getJSON("table settings") || defaultNewTableSetti
 
 const ERROR_DURATION_SEC = 3;
 
-const BACK = "background"
+const BACK = "background";
+const COIN_STACK = "coin stack";
+const TRADE_PAD_IN = "trade pad in";
+const TRADE_PAD_OUT = "trade pad out";
+const PLANT_PAD = "plant pad";
 const IMAGES = []
-IMAGES[BACK] = new PreLoadedImage("/images/background.jpg");
+IMAGES[BACK] = new PreLoadedImage("/images/BACKGROUND.jpg");
+IMAGES[COIN_STACK] = new PreLoadedImage("/images/COIN_STACK.png");
+IMAGES[TRADE_PAD_IN] = new PreLoadedImage("/images/TRADE_PAD_IN.png");
+IMAGES[TRADE_PAD_OUT] = new PreLoadedImage("/images/TRADE_PAD_OUT.png");
+IMAGES[PLANT_PAD] = new PreLoadedImage("/images/PLANT_PAD.png");
 
 const CARD_RATIO = 1.514;
 const CARD_BACK = "CARD_BACK";
-const CARD_FIELD = "CARD_FIELD";
 const CARDS = [];
-CARDS[CARD_BACK] = new PreLoadedImage("/images/cards/BACK.jpg");
-CARDS[CARD_FIELD] = new PreLoadedImage("/images/cards/FIELD.jpg");
+CARDS[CARD_BACK] = new PreLoadedImage("/images/cards/BACK.png");
 for (var val = 4; val < 26; val+=2) {
-	CARDS[val] = new PreLoadedImage(`/images/cards/${val}.jpg`);
+	CARDS[val] = new PreLoadedImage(`/images/cards/${val}.png`);
 }
+for (var i = 1; i < 4; i++) {
+	CARDS[`FIELD ${i}`] = new PreLoadedImage(`/images/FIELD_${i}.png`);
+}
+CARDS["FIELD 3 DASH"] = new PreLoadedImage(`/images/FIELD_3_DASH.png`);
 
 // Player images
+/*
 const PLAYER_IMAGES = [];
 for (var i = 0; i < constants.AVATAR_COUNT; i++) {
 	PLAYER_IMAGES[i] = new PreLoadedImage(`/images/avatars/${i}.png`);
-}
+}*/
 
 // Debug settings
 var DEBUG = false;
@@ -58,11 +69,13 @@ var fieldButtons = [];
 for (var i = 0; i < 3; i++) {
 	fieldButtons[i] = makeCardButton(CARD_BACK, constants.loc.FIELD, i);
 }
+// Force double click to buy third field.
+fieldButtons[2].doubleCallback = fieldButtons[2].callback; fieldButtons[2].callback = undefined;
 var tableCardButtons = [];
 for (var i = 0; i < 2; i++) {
 	tableCardButtons[i] = makeCardButton(CARD_BACK, constants.loc.TABLE, i);
 }
-plantButton = new ShapeButton("#d4aa78", clickLocation.bind(null, constants.loc.PLANT), "white").setHighlight("gold");
+plantButton = new ImageButton(IMAGES[PLANT_PAD], clickLocation.bind(null, constants.loc.PLANT), "white").setBorder("white").setHighlight("gold");
 handButton = new ShapeButton("#d4aa78", clickLocation.bind(null, constants.loc.HAND), "white").setHighlight("gold");
 var plantCards = [];
 var offerCards = [];
@@ -190,11 +203,11 @@ function initLabels() {
 		buttons["make table"],
 		buttons["join table"],
 	]);
-	elems["player-name"] = new DocumentElement("input", "player-name").setPosition(0.288, 0.63).setDims(0.3, 0.09).setSize(40);
+	elems["player-name"] = new DocumentElement("input", "player-name").setPosition(0.288, 0.63).setDims(0.3, 0.09).setSize(35);
 	elems["player-name"].elem.maxLength = 16;
 	elems["player-name"].elem.placeholder = "Player Name";
 	elems["player-name"].elem.value = Cookies("name") || "";
-	elems["game-code"] = new DocumentElement("input", "game-code").setPosition(0.594, 0.63).setDims(0.12, 0.09).setSize(40);
+	elems["game-code"] = new DocumentElement("input", "game-code").setPosition(0.594, 0.63).setDims(0.12, 0.09).setSize(35);
 	elems["game-code"].elem.maxLength = 4;
 	elems["game-code"].elem.placeholder = "CODE";
 	elems["game-code"].elem.style.textTransform = "uppercase";
@@ -210,8 +223,7 @@ function initLabels() {
 		buttons["begin game"],
 		//buttons["change avatar"],
 	])
-	buttons["finish game"] = new Button("Finish Game", 15, doMove.bind(null, constants.moves.FINISH)).setPosition(0.3, 0.6).setDims(0.15, 0.07).setCenter(true);
-
+	buttons["finish game"] = new Button("Finish Game", 15, doMove.bind(null, constants.moves.FINISH)).setPosition(0.6, 0.675).setDims(0.15, 0.07).setCenter(true);
 	// Game buttons
 	buttons["pass"] = new Button("Pass", 15, doMove.bind(null, constants.moves.PASS)).setPosition(0.6, 0.675).setDims(0.15, 0.07).setCenter(true);
 	for (var i = 0; i < 3; i++) {
@@ -297,7 +309,7 @@ function changeState(state) {
 		case constants.states.LOBBY:
 			hand = [];
 			coins = [];
-			overlay = undefined;
+			// overlay = undefined;
 			//clearChats();
 			drawGroups["table lobby"].enable();
 			break;
@@ -497,7 +509,6 @@ function clickLocation(origin, index) {
 }
 
 function doMove(move) {
-	if (move === constants.moves.READY) buttons["ready"].disable();
 	socket.emit("do move", {type: move});
 }
 
@@ -607,7 +618,7 @@ function updateTable(table) {
 			if (buttons[`confirm ${player.id}`]) buttons[`confirm ${player.id}`].clicked = player.trade.offerConfirmed;
 		}
 		if (thePlayerIds.includes(player.id)) return;
-		tradeButtons[player.id] = new ShapeButton(false, clickLocation.bind(null, constants.loc.TRADE, player.id)).setHighlight("gold");
+		tradeButtons[player.id] = new ImageButton(IMAGES[TRADE_PAD_OUT], clickLocation.bind(null, constants.loc.TRADE, player.id)).setBorder("white").setHighlight("gold");
 		buttons[`confirm ${player.id}`] = new Button("✓", 10, confirmTrade.bind(null, player.id), confirmTrade.bind(null, player.id)).disable();
 		buttons[`clear ${player.id}`] = new Button("X", 10, clearTrade.bind(null, player.id)).disable();
 	});
